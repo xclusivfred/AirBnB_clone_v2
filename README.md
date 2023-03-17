@@ -1,6 +1,6 @@
 # AirBnB clone - MySQL
 
-> This directory contains all the tasks of the project "0x02. AirBnB clone - MySQL" at [Holberton School](https://www.holbertonschool.com "Holberton School.")
+> This directory contains all the tasks of the project "0x02. AirBnB clone - MySQL" at [ALX](https://www.alxafrica.com/ "ALX.")
 
 
 
@@ -71,7 +71,7 @@ Using a MySQL storage we replace the file storage (JSON file) by a Database stor
 ## AUTHORS
 
 **Alfredo Kalu Orie**
-**2nd author**
+**Ojieide Egbomondion**
 
 * [Github @xclusivfred](https://github.com/xclusivfred)
-* [Github @user2](https://github.com/user2)
+* [Github @Ojieide](https://github.com/Ojieide)
