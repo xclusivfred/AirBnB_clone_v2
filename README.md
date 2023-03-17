@@ -73,5 +73,5 @@ Using a MySQL storage we replace the file storage (JSON file) by a Database stor
 **Alfredo Kalu Orie**
 **2nd author**
 
-* [Github @xcluivfred](https://github.com/xclusivfred)
+* [Github @xclusivfred](https://github.com/xclusivfred)
 * [Github @user2](https://github.com/user2)
