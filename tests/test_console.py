@@ -1,198 +1,252 @@
-#!/usr/bin/python3
-"""test for console"""
+#!/usr/bin/env python3
+"""
+This test files holds all the tests needed to test the console application
+"""
 import unittest
 from unittest.mock import patch
-from io import StringIO
-import pep8
-import os
-import json
-import console
-import tests
 from console import HBNBCommand
-from models.base_model import BaseModel
-from models.user import User
-from models.state import State
-from models.city import City
-from models.amenity import Amenity
-from models.place import Place
-from models.review import Review
-from models.engine.file_storage import FileStorage
+from io import StringIO
+import re
 
 
 class TestConsole(unittest.TestCase):
-    """this will test the console"""
+    """
+    A unit test to see if the overall functinalits
+    of the console like, the precmd, the parsing, the
+    excution, unkown command handling, and so on are working
+    """
+    pass
 
-    @classmethod
-    def setUpClass(cls):
-        """setup for the test"""
-        cls.consol = HBNBCommand()
 
-    @classmethod
-    def teardown(cls):
-        """at the end of the test this will tear it down"""
-        del cls.consol
+class TestCreate(unittest.TestCase):
+    """
+    A unit test class to thest all the create functionalities
+    of the create console command.
+    """
 
-    def tearDown(self):
-        """Remove temporary file (file.json) created as a result"""
-        try:
-            os.remove("file.json")
-        except Exception:
-            pass
+    def test_create_noArgs(self):
+        """
+        Tests the create method the one with out no arguments
+        """
 
-    def test_pep8_console(self):
-        """Pep8 console.py"""
-        style = pep8.StyleGuide(quiet=True)
-        p = style.check_files(["console.py"])
-        self.assertEqual(p.total_errors, 0, 'fix Pep8')
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create")
+        clean_output = out_put.getvalue()
+        self.assertEqual(clean_output, "** class name missing **\n")
 
-    def test_docstrings_in_console(self):
-        """checking for docstrings"""
-        self.assertIsNotNone(console.__doc__)
-        self.assertIsNotNone(HBNBCommand.emptyline.__doc__)
-        self.assertIsNotNone(HBNBCommand.do_quit.__doc__)
-        self.assertIsNotNone(HBNBCommand.do_EOF.__doc__)
-        self.assertIsNotNone(HBNBCommand.do_create.__doc__)
-        self.assertIsNotNone(HBNBCommand.do_show.__doc__)
-        self.assertIsNotNone(HBNBCommand.do_destroy.__doc__)
-        self.assertIsNotNone(HBNBCommand.do_all.__doc__)
-        self.assertIsNotNone(HBNBCommand.do_update.__doc__)
-        self.assertIsNotNone(HBNBCommand.do_count.__doc__)
-        self.assertIsNotNone(HBNBCommand.default.__doc__)
+    def test_create_unExistingClass(self):
+        """
+        Tests the creat method when the class to be created doesn't
+        exist.
+        """
 
-    def test_emptyline(self):
-        """Test empty line input"""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("\n")
-            self.assertEqual('', f.getvalue())
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create NOCLASS")
+        clean_output = out_put.getvalue()
+        self.assertEqual(clean_output, "** class doesn't exist **\n")
 
-    def test_create(self):
-        """Test create command inpout"""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("create")
-            self.assertEqual(
-                "** class name missing **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("create qwerty")
-            self.assertEqual(
-                "** class doesn't exist **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd('create User email="user" password="passwd"')
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all User")
-            self.assertEqual(
-                "[\"[User", f.getvalue()[:7])
+    def test_create_withclassName(self):
+        """
+        Tests the create method with a correcet class name
+        """
 
-    def test_show(self):
-        """Test show command inpout"""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("show")
-            self.assertEqual(
-                "** class name missing **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("show qwerty")
-            self.assertEqual(
-                "** class doesn't exist **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("show BaseModel")
-            self.assertEqual(
-                "** instance id missing **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("show BaseModel Meco")
-            self.assertEqual(
-                "** no instance found **\n", f.getvalue())
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create User")
+        clean_output = out_put.getvalue()
+        # check if the printed value is something like an id
+        self.assertRegex(clean_output, r"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}\n")
+        # see if this created object is stored in the file.json
+        with open("file.json", "r") as storage:
+            db = storage.read()
+            # check if the data is stored correclt in the file storage
+            result = re.findall("User."+clean_output[:-1], db)
+            self.assertTrue(len(result) == 1)
+        # do some more test with other class names
 
-    def test_destroy(self):
-        """Test destroy command inpout"""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("destroy")
-            self.assertEqual(
-                "** class name missing **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("destroy Montes")
-            self.assertEqual(
-                "** class doesn't exist **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("destroy User")
-            self.assertEqual(
-                "** instance id missing **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("destroy BaseModel 2aq3wsed5rf6tg7yh8")
-            self.assertEqual(
-                "** no instance found **\n", f.getvalue())
+    def test_create_classWithOneParams(self):
+        """
+        Test the create method with paramaetrs
+        """
 
-    def test_all(self):
-        """Test all command inpout"""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all qwerty")
-            self.assertEqual("** class doesn't exist **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all State")
-            self.assertEqual("[]\n", f.getvalue())
+        # delete the database to avoid conflicting
+        # names
+        from models import storage as f_storage
+        f_storage.empty()
 
-    def test_update(self):
-        """Test update command inpout"""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("update")
-            self.assertEqual(
-                "** class name missing **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("update qwerty")
-            self.assertEqual(
-                "** class doesn't exist **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("update User")
-            self.assertEqual(
-                "** instance id missing **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("update User aqwsedf5g67hj8")
-            self.assertEqual(
-                "** no instance found **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all User")
-            obj = f.getvalue()
-        my_id = obj[obj.find('(')+1:obj.find(')')]
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("update User " + my_id)
-            self.assertEqual(
-                "** attribute name missing **\n", f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("update User " + my_id + " Name")
-            self.assertEqual(
-                "** value missing **\n", f.getvalue())
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create Place name=\"California\"")
+        clean_output = out_put.getvalue()
+        self.assertRegex(clean_output, r"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}\n")
+        # see if this created object is stored in the file.json
+        with open("file.json", "r") as storage:
+            db = storage.read()
+            # check if the data is stored correclt in the file storage
+            result = re.findall("Place."+clean_output[:-1], db)
+            self.assertTrue(len(result) == 1)
 
-    def test_destroy(self):
-        """Test alternate destroy command inpout"""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("s3d4f5g.destroy()")
-            self.assertNotEqual("** class doesn't exist **",
-                                f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("User.destroy(s3d4f5g67hj8k9)")
-            self.assertNotEqual(
-                "** no instance found **\n", f.getvalue())
+            result = re.findall("\"name\": \"California\"", db)
+            self.assertTrue(len(result) == 1)
+        # do some more test with other class names
 
-    def test_update(self):
-        """Test alternate destroy command inpout"""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("xcvbnm.update()")
-            self.assertNotEqual("** class doesn't exist **",
-                                f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("User.update(5f6ghum9)")
-            self.assertNotEqual("** no instance found **",
-                                f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all User")
-            obj = f.getvalue()
-        my_id = obj[obj.find('(')+1:obj.find(')')]
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("User.update(" + my_id + ")")
-            self.assertNotEqual("** attribute name missing **",
-                                f.getvalue())
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("User.update(" + my_id + ", name)")
-            self.assertNotEqual("** value missing **\n",
-                                f.getvalue())
+    def test_create_classWithMoreParams(self):
+        """
+        Test the create method with paramaetrs
+        """
 
-if __name__ == "__main__":
-    unittest.main()
+        # delete the database to avoid conflicting
+        # names
+        from models import storage as f_storage
+        f_storage.empty()
+
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create Place name=\"California\
+                    " city_id=\"0001\" user_id=\"0001\"")
+
+        clean_output = out_put.getvalue()
+        self.assertRegex(clean_output, r"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}\n")
+        # see if this created object is stored in the file.json
+        with open("file.json", "r") as storage:
+            db = storage.read()
+            # check if the data is stored correclt in the file storage
+            result = re.findall("Place."+clean_output[:-1], db)
+            self.assertTrue(len(result) == 1)
+
+            result = re.findall("\"name\": \"California\"", db)
+            self.assertTrue(len(result) == 1)
+
+            result = re.findall("\"city_id\": \"0001\"", db)
+            self.assertTrue(len(result) == 1)
+
+            result = re.findall("\"user_id\": \"0001\"", db)
+            self.assertTrue(len(result) == 1)
+        # do some more test with other class names
+
+    def test_create_valueTypesStrWithDoubleQuote(self):
+        """
+        Test the create method with paramaetrs that have a string value
+        """
+
+        # delete the database to avoid conflicting
+        # names
+        from models import storage as f_storage
+        f_storage.empty()
+
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create Place name=\"Double_quote_Insid\"e\"")
+        clean_output = out_put.getvalue()
+
+        self.assertRegex(clean_output, r"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}\n")
+        # see if this created object is stored in the file.json
+        with open("file.json", "r") as storage:
+            db = storage.read()
+            # check if the data is stored correclt in the file storage
+            result = re.findall("Place."+clean_output[:-1], db)
+            self.assertTrue(len(result) == 1)
+
+            result = re.findall(r'"name": "Double quote Insid\\"e"', db)
+            self.assertTrue(len(result) == 1)
+        # do some more test with other class names
+
+    def test_create_valueTypeStrWithSpace(self):
+        """
+        Test the create method with paramaetrs that have a string value
+        """
+
+        # delete the database to avoid conflicting
+        # names
+        from models import storage as f_storage
+        f_storage.empty()
+
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create Place name=\"my_little_house\"")
+        clean_output = out_put.getvalue()
+
+        self.assertRegex(clean_output, r"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}\n")
+        # see if this created object is stored in the file.json
+        with open("file.json", "r") as storage:
+            db = storage.read()
+            # check if the data is stored correclt in the file storage
+            result = re.findall("Place."+clean_output[:-1], db)
+            self.assertTrue(len(result) == 1)
+
+            result = re.findall("\"name\": \"my little house\"", db)
+            self.assertTrue(len(result) == 1)
+        # do some more test with other class names
+
+    def test_create_valueTypeFloat(self):
+        """
+        Test the create method with paramaetrs that have a string value
+        """
+
+        # delete the database to avoid conflicting
+        # names
+        from models import storage as f_storage
+        f_storage.empty()
+
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create Place name=15.6")
+        clean_output = out_put.getvalue()
+
+        self.assertRegex(clean_output, r"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}\n")
+        # see if this created object is stored in the file.json
+        with open("file.json", "r") as storage:
+            db = storage.read()
+            # check if the data is stored correclt in the file storage
+            result = re.findall("Place."+clean_output[:-1], db)
+            self.assertTrue(len(result) == 1)
+
+            result = re.findall("\"name\": 15.6", db)
+            self.assertTrue(len(result) == 1)
+
+    def test_create_valueTypeInt(self):
+        """
+        Test the create method with paramaetrs that have a string value
+        """
+        # delete the database to avoid conflicting
+        # names
+        from models import storage as f_storage
+        f_storage.empty()
+
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create Place name=15")
+        clean_output = out_put.getvalue()
+
+        self.assertRegex(clean_output, r"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}\n")
+        # see if this created object is stored in the file.json
+        with open("file.json", "r") as storage:
+            db = storage.read()
+            # check if the data is stored correclt in the file storage
+            result = re.findall("Place."+clean_output[:-1], db)
+            self.assertTrue(len(result) == 1)
+
+            result = re.findall("\"name\": 15", db)
+            self.assertTrue(len(result) == 1)
+
+    def test_create_valueTypeWrong(self):
+        """
+        Test the create method with paramaetrs that have a string value
+        """
+        # delete the database to avoid conflicting
+        # names
+        from models import storage as f_storage
+        f_storage.empty()
+
+        with patch('sys.stdout', new=StringIO()) as out_put:
+            HBNBCommand().onecmd("create Place name=_15")
+        clean_output = out_put.getvalue()
+
+        self.assertRegex(clean_output, r"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}\n")
+        # see if this created object is stored in the file.json
+        with open("file.json", "r") as storage:
+            db = storage.read()
+            # check if the data is stored correclt in the file storage
+            result = re.findall("Place."+clean_output[:-1], db)
+            self.assertTrue(len(result) == 1)
+
+            result = re.findall("\"name\": \"_15\"", db)
+            self.assertTrue(len(result) == 0)
+
+
+class TestShow(unittest.TestCase):
+    """Test show"""
+    pass
